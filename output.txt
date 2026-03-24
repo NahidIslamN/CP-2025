@@ -1,1 +1,3 @@
-Jor sonkha!
+First Name: N
+Last Name: R
+Age: 20
