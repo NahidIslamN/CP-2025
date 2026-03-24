@@ -3,17 +3,18 @@ using namespace std;
 
 struct Builder {
     int n, k, b;
-    int s;
-    int x;
-    int q;
+    int s; // core size = n - b
+    int x; // number of odd vertices among singleton side (bridge-tree odds)
+    int q; // odd vertices needed inside core
     vector<pair<int, int>> edges;
 
     static bool core_possible(int s, int x, int q) {
         if (q < 0 || q > s) return false;
-        if (((q ^ x) & 1) != 0) return false;
-        if (s == 2) return false;
-        if (s == 3) return x >= q;
-        return true; 
+        if (((q ^ x) & 1) != 0) return false; // parity of odd count in core must match x
+        if (s == 1) return q == (x & 1);
+        if (s == 2) return false; // impossible as 2-vertex simple connected graph has 1 bridge
+        if (s == 3) return x >= q; // triangle + attachments can realize these
+        return true; // s >= 4 always constructible for valid parity/range
     }
 
     void build_core(vector<int>& attach_vertices) {
@@ -32,7 +33,7 @@ struct Builder {
 
             vector<int> cnt(4, 0);
             for (int v = 1; v <= q; v++) cnt[v] = 1;
-            cnt[1] += (x - q); 
+            cnt[1] += (x - q); // x and q parity match, so this preserves target parity
 
             for (int v = 1; v <= 3; v++) {
                 for (int c = 0; c < cnt[v]; c++) attach_vertices.push_back(v);
@@ -40,15 +41,15 @@ struct Builder {
             return;
         }
 
-        
+        // s >= 4: start from a cycle (0 bridges in core)
         for (int v = 1; v < s; v++) edges.push_back({v, v + 1});
         edges.push_back({s, 1});
 
-        
+        // put all core-side bridge incidences on vertex 1
         attach_vertices.assign(x, 1);
 
-        int p = x & 1;
-        int r = (q - p) / 2;
+        int p = x & 1;       // current odd count in core from attachments
+        int r = (q - p) / 2; // number of extra odd pairs to create by adding chords
 
         if (r <= 0) return;
         if (r == 1) {
@@ -72,8 +73,9 @@ struct Builder {
     bool build() {
         edges.clear();
 
-        if (k & 1) return false;
-        if (b == n - 2) return false;
+        if (k & 1) return false;     // sum of degrees parity
+        if (b == n - 2) return false; // impossible bridge count for connected simple graph
+
         s = n - b;
         x = -1;
 
@@ -102,7 +104,7 @@ struct Builder {
             singles.reserve(b);
             for (int v = s + 1; v <= n; v++) singles.push_back(v);
 
-            int path_len = b - x + 1;
+            int path_len = b - x + 1; // one path contributes odd endpoints
             vector<int> path_nodes(singles.begin(), singles.begin() + path_len);
             vector<int> leaf_nodes(singles.begin() + path_len, singles.end());
 
